@@ -6,7 +6,7 @@
 <title>Reel Minimal 레이아웃 데모</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400&family=Gowun+Batang:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..600;1,400&family=Gowun+Batang:wght@400;700&display=swap">
 <style>
   :root {
     --bg: #eaf1f2;
@@ -17,7 +17,7 @@
     --plate: #dae4e8;
     --veil: rgba(234, 241, 242, .97);
     --pad: 32px;
-    --latin: "Bodoni Moda", "Gowun Batang", serif;
+    --latin: "EB Garamond", "Gowun Batang", serif;
     --serif: "Gowun Batang", serif;
     --ease: cubic-bezier(.16, .84, .24, 1);
   }
@@ -26,7 +26,7 @@
   body { overflow: hidden; }
   ::selection { background: var(--ink); color: var(--bg); }
   button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-  .mono { font-family: var(--latin); font-size: 13px; font-variant-numeric: lining-nums tabular-nums; line-height: 1; }
+  .mono { font-family: var(--latin); font-size: 14px; font-variant-numeric: lining-nums tabular-nums; line-height: 1; }
 
   /* clip: hidden이면 화면 밖 요소에 포커스가 갈 때 섹션이 스크롤된다 */
   .stage { position: relative; height: 100dvh; overflow: hidden; overflow: clip; user-select: none; touch-action: none; cursor: grab; }
@@ -40,7 +40,7 @@
   .list { position: absolute; z-index: 2; left: var(--pad); top: 50%; width: 30vw; height: 0; list-style: none; padding: 0; }
   .row { position: absolute; left: 0; top: 0; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; transform-origin: 0 50%; will-change: transform, opacity; cursor: pointer; }
   .row .ko { font-weight: 400; letter-spacing: -.01em; line-height: 1; }
-  .row .n { font-family: var(--latin); font-size: 13px; font-variant-numeric: lining-nums tabular-nums; color: var(--dim); transition: transform .8s cubic-bezier(.22, .61, .36, 1); }
+  .row .n { font-family: var(--latin); font-size: 14px; font-variant-numeric: lining-nums tabular-nums; color: var(--dim); transition: transform .8s cubic-bezier(.22, .61, .36, 1); }
   .row:hover .n, .row:focus-visible .n { transform: translateX(3px); }
   .row:focus-visible { outline: 1px dashed var(--dim); outline-offset: 4px; }
 
@@ -49,7 +49,7 @@
   .shell { position: absolute; inset: 0; overflow: hidden; background: var(--plate); will-change: clip-path; transition: opacity .45s ease; cursor: inherit; }
   .shell img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
   .stage.hovering:not(.dragging) .frame:not(.hover) .shell { opacity: .7; }
-  .num { position: absolute; top: 50%; font-family: var(--latin); font-size: 14px; font-variant-numeric: lining-nums tabular-nums; color: var(--mid); pointer-events: none; }
+  .num { position: absolute; top: 50%; font-family: var(--latin); font-size: 15px; font-variant-numeric: lining-nums tabular-nums; color: var(--mid); pointer-events: none; }
   .num.l { right: 50%; }
   .num.r { left: 50%; }
 
@@ -69,7 +69,7 @@
   .v-bar { position: absolute; top: 24px; left: var(--pad); right: var(--pad); display: flex; justify-content: space-between; align-items: center; }
   .v-count { color: var(--dim); }
   .v-count span { opacity: .5; }
-  .v-cap .en { color: var(--accent); font-style: italic; font-size: 17px; }
+  .v-cap .en { color: var(--accent); font-style: italic; font-size: 19px; }
   .v-btn { padding: 10px 4px; }
   .v-btn:focus-visible { outline: 1px dashed var(--dim); outline-offset: 2px; }
   .v-prev, .v-next { position: absolute; top: 50%; transform: translateY(-50%); }
