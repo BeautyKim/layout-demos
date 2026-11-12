@@ -87,6 +87,7 @@
   @media (max-width: 720px) {
     :root { --pad: 16px; }
     .list { top: auto; bottom: 64px; width: auto; right: var(--pad); height: 0; }
+    .stage::before { content: ""; position: absolute; z-index: 1; left: 0; right: 0; top: 0; height: 64px; background: linear-gradient(var(--bg) 55%, transparent); pointer-events: none; }
     .stage::after { content: ""; position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 150px; background: linear-gradient(transparent, var(--bg) 45%); pointer-events: none; }
     .num { display: none; }
     .hint { display: none; }
@@ -97,11 +98,17 @@
   @media (prefers-reduced-motion: reduce) {
     .viewer, .viewer.open, .v-swap, .pill, .shell { transition: none; }
   }
+  .home { color: inherit; text-decoration: none; opacity: .62; pointer-events: auto; transition: opacity .2s; white-space: nowrap; }
+  .home:hover { opacity: 1; }
+  .home:focus-visible { opacity: 1; outline: 1px solid currentColor; outline-offset: 4px; }
+  .hl { display: flex; align-items: baseline; gap: 16px; }
+  .head .home { color: var(--mid); opacity: 1; font-family: var(--serif); font-size: 13px; }
+  .head .home:hover { color: var(--accent); }
 </style>
 </head>
 <body>
 <main class="stage" id="stage" tabindex="0" role="region" aria-roledescription="갤러리" aria-label="머무는 빛 사진 6장">
-  <header class="head mono"><b>머무는 빛</b><span id="count">(01) / (06)</span></header>
+  <header class="head mono"><span class="hl"><a class="home" href="../" aria-label="데모 목록으로">← 목록</a><b>머무는 빛</b></span><span id="count">(01) / (06)</span></header>
   <ol class="list" id="list"></ol>
   <div id="frames"></div>
   <p class="hint">드래그 · 휠 · ↑↓ · 사진을 누르면 크게</p>
@@ -220,7 +227,7 @@ function loop() {
 
 let drag = null, wheelLock = 0;
 stage.addEventListener("pointerdown", (e) => {
-  if (e.button !== 0) return;
+  if (e.button !== 0 || e.target.closest(".home")) return;
   drag = { y: e.clientY, start: pos, moved: false, t: performance.now(), lastY: e.clientY, v: 0, el: e.target };
   stage.setPointerCapture(e.pointerId);
 });
