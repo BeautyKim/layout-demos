@@ -1,7 +1,7 @@
 # Cinema Reel — 세로 무한 릴
 
 - 데모: [`cinema-reel/index.html`](../cinema-reel/index.html)
-- 원본: [Motionin · Cinema Reel](https://motionin.design/gallery/cinema-reel). 구조와 동작만 가져왔고 작품·문구는 새로 썼다
+- 참고: [Motionin · Cinema Reel](https://motionin.design/gallery/cinema-reel)의 세로 릴 구성. 작품·문구·사진은 새로 만들었다
 
 ## 구조
 
