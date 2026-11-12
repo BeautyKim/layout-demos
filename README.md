@@ -14,6 +14,7 @@
 | [reel-exhibition](reel-exhibition/) | 같은 릴을 밝은 사진전 도록으로. 사진은 잘려 들어오고 글은 줄마다 올라온다 | [docs/reel-variants.md](docs/reel-variants.md) |
 | [reel-festival](reel-festival/) | 같은 릴을 축제 라인업으로. 화면 가득 듀오톤, 이름이 가로로 휩쓸려 온다 | [docs/reel-variants.md](docs/reel-variants.md) |
 | [reel-index](reel-index/) | 같은 릴을 건축 아카이브로. 목록이 드럼처럼 돌고 사진이 위에서 열린다 | [docs/reel-variants.md](docs/reel-variants.md) |
+| [reel-minimal](reel-minimal/) | 흰 바탕 세로 스택. 가운데 사진만 넓게 펼쳐지고 상세 보기에서 크게 넘겨 본다 | [docs/reel-minimal.md](docs/reel-minimal.md) |
 
 ## 로컬에서 보기
 
