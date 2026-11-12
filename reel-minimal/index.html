@@ -6,8 +6,7 @@
 <title>Reel Minimal 레이아웃 데모</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400&family=Gowun+Batang:wght@400;700&display=swap">
 <style>
   :root {
     --bg: #eaf1f2;
@@ -18,16 +17,16 @@
     --plate: #dae4e8;
     --veil: rgba(234, 241, 242, .97);
     --pad: 32px;
-    --mono: "IBM Plex Mono", ui-monospace, monospace;
-    --sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+    --latin: "Bodoni Moda", "Gowun Batang", serif;
+    --serif: "Gowun Batang", serif;
     --ease: cubic-bezier(.16, .84, .24, 1);
   }
   * { box-sizing: border-box; margin: 0; }
-  html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--serif); -webkit-font-smoothing: antialiased; }
   body { overflow: hidden; }
   ::selection { background: var(--ink); color: var(--bg); }
   button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-  .mono { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; line-height: 1; }
+  .mono { font-family: var(--latin); font-size: 13px; font-variant-numeric: lining-nums tabular-nums; line-height: 1; }
 
   /* clip: hidden이면 화면 밖 요소에 포커스가 갈 때 섹션이 스크롤된다 */
   .stage { position: relative; height: 100dvh; overflow: hidden; overflow: clip; user-select: none; touch-action: none; cursor: grab; }
@@ -36,12 +35,12 @@
 
   .head { position: absolute; z-index: 3; top: 24px; left: var(--pad); right: var(--pad); display: flex; justify-content: space-between; pointer-events: none; color: var(--dim); }
   .head i, .v-count i { font-style: normal; color: var(--accent); }
-  .head b { font-family: var(--sans); font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ink); }
+  .head b { font-family: var(--serif); font-size: 14px; font-weight: 700; color: var(--ink); }
 
   .list { position: absolute; z-index: 2; left: var(--pad); top: 50%; width: 30vw; height: 0; list-style: none; padding: 0; }
   .row { position: absolute; left: 0; top: 0; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; transform-origin: 0 50%; will-change: transform, opacity; cursor: pointer; }
-  .row .ko { font-weight: 600; letter-spacing: -.02em; line-height: 1; }
-  .row .n { font-family: var(--mono); font-size: 11px; color: var(--dim); transition: transform .8s cubic-bezier(.22, .61, .36, 1); }
+  .row .ko { font-weight: 400; letter-spacing: -.01em; line-height: 1; }
+  .row .n { font-family: var(--latin); font-size: 13px; font-variant-numeric: lining-nums tabular-nums; color: var(--dim); transition: transform .8s cubic-bezier(.22, .61, .36, 1); }
   .row:hover .n, .row:focus-visible .n { transform: translateX(3px); }
   .row:focus-visible { outline: 1px dashed var(--dim); outline-offset: 4px; }
 
@@ -50,7 +49,7 @@
   .shell { position: absolute; inset: 0; overflow: hidden; background: var(--plate); will-change: clip-path; transition: opacity .45s ease; cursor: inherit; }
   .shell img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
   .stage.hovering:not(.dragging) .frame:not(.hover) .shell { opacity: .7; }
-  .num { position: absolute; top: 50%; font-family: var(--mono); font-size: 12px; color: var(--mid); pointer-events: none; }
+  .num { position: absolute; top: 50%; font-family: var(--latin); font-size: 14px; font-variant-numeric: lining-nums tabular-nums; color: var(--mid); pointer-events: none; }
   .num.l { right: 50%; }
   .num.r { left: 50%; }
 
@@ -60,7 +59,7 @@
   @media (pointer: fine) { .stage.hovering:not(.dragging) { cursor: none; } }
   @media (pointer: coarse) { .pill { display: none; } }
 
-  .hint { position: absolute; z-index: 3; left: var(--pad); bottom: 24px; color: var(--dim); font-size: 12px; pointer-events: none; }
+  .hint { position: absolute; z-index: 3; left: var(--pad); bottom: 24px; color: var(--dim); font-size: 13px; pointer-events: none; }
 
   /* 상세 보기 */
   .viewer { position: fixed; inset: 0; z-index: 10; touch-action: none; background: var(--veil); opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s .5s; user-select: none; }
@@ -70,17 +69,17 @@
   .v-bar { position: absolute; top: 24px; left: var(--pad); right: var(--pad); display: flex; justify-content: space-between; align-items: center; }
   .v-count { color: var(--dim); }
   .v-count span { opacity: .5; }
-  .v-cap .en { color: var(--accent); }
+  .v-cap .en { color: var(--accent); font-style: italic; font-size: 17px; }
   .v-btn { padding: 10px 4px; }
   .v-btn:focus-visible { outline: 1px dashed var(--dim); outline-offset: 2px; }
   .v-prev, .v-next { position: absolute; top: 50%; transform: translateY(-50%); }
   .v-prev { left: var(--pad); }
   .v-next { right: var(--pad); }
   .v-cap { position: absolute; left: var(--pad); bottom: 32px; max-width: 46ch; }
-  .v-cap h2 { margin: 12px 0 10px; font-size: clamp(28px, 3.4vw, 44px); font-weight: 600; letter-spacing: -.035em; line-height: 1.1; }
-  .v-cap p { color: var(--mid); font-size: 15px; line-height: 1.6; word-break: keep-all; }
+  .v-cap h2 { margin: 10px 0 12px; font-size: clamp(30px, 3.6vw, 48px); font-weight: 400; letter-spacing: -.02em; line-height: 1.15; }
+  .v-cap p { color: var(--mid); font-size: 15px; line-height: 1.75; word-break: keep-all; }
   .v-meta { position: absolute; right: var(--pad); bottom: 32px; text-align: right; color: var(--dim); display: grid; gap: 8px; }
-  .v-meta a { text-transform: none; color: inherit; text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 1px; }
+  .v-meta a { color: inherit; text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 1px; }
   .v-meta a:hover, .v-meta a:focus-visible { color: var(--ink); outline: none; }
   .v-swap { transition: opacity .45s ease, transform .6s var(--ease); }
   .v-swap.out { opacity: 0; transform: translateY(8px); transition: none; }
@@ -339,7 +338,7 @@ function openViewer(i) {
   viewer.classList.add("open");
   frames[i].el.style.visibility = "hidden";
   if (!reduce) vImg.animate([{ transform: fromFrame(i, r) }, { transform: "none" }], { duration: 750, easing: "cubic-bezier(.16,.84,.24,1)" });
-  $("v-close").focus({ preventScroll: true });
+  $("v-close").focus({ preventScroll: true, focusVisible: false });
 }
 function closeViewer() {
   if (!vOpen) return;
