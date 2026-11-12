@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel Festival 레이아웃 데모</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root {
+    --ink: #fff;
+    --pad-x: 4vw;
+    --display: "Black Han Sans", sans-serif;
+    --sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: #111; color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  body { overflow: hidden; }
+  ::selection { background: #fff; color: #111; }
+
+  /* clip: hidden이면 화면 밖 요소에 포커스가 갈 때 섹션이 스크롤된다 */
+  .reel { position: relative; isolation: isolate; height: 100dvh; overflow: hidden; overflow: clip; user-select: none; touch-action: none; cursor: grab; }
+  .reel.dragging { cursor: grabbing; }
+  .reel:focus-visible { outline: 3px solid #fff; outline-offset: -8px; }
+
+  .slide { position: absolute; inset: 0; overflow: hidden; background: var(--c); will-change: transform; }
+  .slide img { position: absolute; left: 0; width: 100%; height: 130%; top: -15%; object-fit: cover; filter: grayscale(1) contrast(1.25) brightness(1.05); mix-blend-mode: multiply; will-change: transform; }
+  .slide::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(0,0,0,.45)); }
+
+  .copy { position: absolute; inset: 0; z-index: 1; padding: 13dvh var(--pad-x) 15dvh; display: flex; flex-direction: column; justify-content: flex-end; }
+  .day { font-size: clamp(18px, 2.4vw, 28px); font-weight: 800; letter-spacing: -.01em; will-change: transform; }
+  .name { margin: 1dvh 0 3dvh; font: 400 clamp(72px, 14vw, 230px)/.92 var(--display); letter-spacing: -.02em; word-break: keep-all; will-change: transform; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 15px; font-weight: 600; will-change: transform; }
+  .row span { opacity: .78; font-weight: 500; margin-right: 8px; }
+
+  .top { position: fixed; z-index: 5; top: 0; left: 0; right: 0; padding: 3.2dvh var(--pad-x); display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 15px; pointer-events: none; }
+  .top .brand { font: 400 22px var(--display); letter-spacing: -.01em; }
+  .top .when { font-variant-numeric: tabular-nums; opacity: .9; }
+
+  .progress { position: fixed; z-index: 5; left: var(--pad-x); right: var(--pad-x); bottom: 4.5dvh; display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 8px; list-style: none; padding: 0; }
+  .progress button { width: 100%; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; color: #fff; font: 600 12px var(--sans); text-align: left; }
+  .progress button i { display: block; height: 3px; background: rgba(255,255,255,.35); overflow: hidden; }
+  .progress button i::after { content: ""; display: block; height: 100%; background: #fff; transform: scaleX(var(--f, 0)); transform-origin: left; }
+  .progress button span { opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .progress button[aria-current="true"] span { opacity: 1; }
+  .progress button:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+
+  @media (max-width: 720px) {
+    :root { --pad-x: 20px; }
+    .copy { padding-bottom: 14dvh; }
+    .name { font-size: clamp(56px, 19vw, 96px); }
+    .progress button span { display: none; }
+    .progress button { height: 16px; }
+    .top { flex-direction: column; gap: 4px; }
+    .top .when { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><span class="brand">한여름 소리 축제</span><span class="when">2026. 8. 14 – 16 · 난지 한강공원</span></header>
+<main>
+  <section class="reel" id="reel" tabindex="0" aria-roledescription="carousel" aria-label="라인업. 위아래 화살표로 넘깁니다">
+    <div id="stack"></div>
+  </section>
+</main>
+<ol class="progress" id="progress" aria-label="출연진 선택"></ol>
+<script>
+const ITEMS = [
+  { photo: "tide", color: "#2f45ff", name: "얕은 바다", day: "8월 14일 금", stage: "물결 무대", time: "19:20", genre: "드림팝" },
+  { photo: "alley", color: "#e5432f", name: "늦은 버스", day: "8월 14일 금", stage: "큰 무대", time: "21:40", genre: "인디 록" },
+  { photo: "station", color: "#13865a", name: "새벽 세탁소", day: "8월 15일 토", stage: "숲 무대", time: "18:00", genre: "포크" },
+  { photo: "forge", color: "#f0841a", name: "고양이 공장", day: "8월 15일 토", stage: "큰 무대", time: "22:10", genre: "펑크" },
+  { photo: "cave", color: "#7a3cf0", name: "빈 방 오케스트라", day: "8월 16일 일", stage: "물결 무대", time: "20:30", genre: "앰비언트" },
+  { photo: "lighthouse", color: "#0e8ea3", name: "모래시계", day: "8월 16일 일", stage: "큰 무대", time: "21:50", genre: "신스팝" },
+];
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+const reel = $("reel"), stack = $("stack"), N = ITEMS.length;
+$("progress").style.setProperty("--n", N);
+
+ITEMS.forEach((it, i) => {
+  const el = document.createElement("article");
+  el.className = "slide";
+  el.style.setProperty("--c", it.color);
+  el.setAttribute("aria-roledescription", "slide");
+  el.setAttribute("aria-label", `${i + 1} / ${N}: ${it.name}`);
+  el.innerHTML = `
+    <img src="images/${it.photo}.webp" alt="" draggable="false">
+    <div class="copy">
+      <p class="day">${it.day}</p>
+      <h2 class="name">${it.name}</h2>
+      <p class="row"><b><span>무대</span>${it.stage}</b><b><span>시작</span>${it.time}</b><b><span>장르</span>${it.genre}</b></p>
+    </div>`;
+  stack.append(el);
+  const li = document.createElement("li");
+  li.innerHTML = `<button aria-label="${i + 1}번째 출연진 보기: ${it.name}"><span>${it.name}</span><i></i></button>`;
+  li.firstChild.addEventListener("click", () => goTo(nearest(i)));
+  $("progress").append(li);
+});
+const slides = [...stack.children];
+const parts = slides.map((s) => ({ img: s.querySelector("img"), day: s.querySelector(".day"), name: s.querySelector(".name"), row: s.querySelector(".row") }));
+const bars = [...$("progress").querySelectorAll("button")];
+
+let pos = 0, target = 0, active = -1, dragStart = null, dragPx = 0, vel = 0, lastY = 0, lastT = 0, wheelLock = 0;
+const mod = (a, n) => ((a % n) + n) % n;
+const nearest = (i) => target + (mod(i - target + N / 2, N) - N / 2);
+const goTo = (t) => { target = Math.round(t); if (reduce) pos = target; };
+
+function frame() {
+  if (dragStart === null) {
+    pos += (target - pos) * (reduce ? 1 : 0.08);
+    if (Math.abs(target - pos) < 0.0005) pos = target;
+  }
+  const h = innerHeight, w = innerWidth, p = pos - dragPx / h;
+  slides.forEach((el, i) => {
+    const rel = mod(i - p + N / 2, N) - N / 2;
+    el.style.transform = `translate3d(0, ${(rel * h).toFixed(1)}px, 0)`;
+    el.style.zIndex = String(10 - Math.round(Math.abs(rel) * 2));
+    if (reduce) return;
+    // 슬라이드는 세로로 지나가고, 이름은 가로로 휩쓸려 들어온다
+    const k = parts[i];
+    k.img.style.transform = `translate3d(0, ${(-rel * h * 0.3).toFixed(1)}px, 0)`;
+    k.name.style.transform = `translate3d(${(rel * w * 0.55).toFixed(1)}px, ${(-rel * h * 0.35).toFixed(1)}px, 0)`;
+    k.day.style.transform = `translate3d(${(rel * w * 0.25).toFixed(1)}px, ${(-rel * h * 0.35).toFixed(1)}px, 0)`;
+    k.row.style.transform = `translate3d(${(rel * w * 0.15).toFixed(1)}px, ${(-rel * h * 0.35).toFixed(1)}px, 0)`;
+  });
+  const cur = mod(p, N);
+  bars.forEach((b, i) => {
+    const f = Math.min(Math.max(1 - Math.abs(mod(cur - i + N / 2, N) - N / 2), 0), 1);
+    b.style.setProperty("--f", f.toFixed(3));
+  });
+  const a = mod(Math.round(p), N);
+  if (a !== active) {
+    active = a;
+    slides.forEach((el, i) => el.setAttribute("aria-hidden", i !== a));
+    bars.forEach((b, i) => b.setAttribute("aria-current", i === a));
+  }
+  requestAnimationFrame(frame);
+}
+
+reel.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const now = performance.now();
+  if (now < wheelLock || Math.abs(e.deltaY) < 8) return;
+  goTo(target + Math.sign(e.deltaY)); wheelLock = now + 750;
+}, { passive: false });
+reel.addEventListener("pointerdown", (e) => {
+  dragStart = lastY = e.clientY; lastT = performance.now(); vel = 0; dragPx = 0;
+  reel.setPointerCapture(e.pointerId); reel.classList.add("dragging");
+});
+reel.addEventListener("pointermove", (e) => {
+  if (dragStart === null) return;
+  const now = performance.now();
+  vel = (e.clientY - lastY) / Math.max(now - lastT, 1); lastY = e.clientY; lastT = now;
+  dragPx = e.clientY - dragStart;
+});
+function endDrag() {
+  if (dragStart === null) return;
+  pos -= dragPx / innerHeight; dragPx = 0; dragStart = null;
+  const base = Math.round(pos), flick = Math.abs(vel) > 0.5 ? -Math.sign(vel) : 0;
+  goTo(flick && base === target ? base + flick : base);
+  reel.classList.remove("dragging");
+}
+reel.addEventListener("pointerup", endDrag);
+reel.addEventListener("pointercancel", endDrag);
+addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "PageDown") { e.preventDefault(); goTo(target + 1); }
+  if (e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); goTo(target - 1); }
+});
+// overflow: clip 미지원 브라우저 대비
+reel.addEventListener("scroll", () => { reel.scrollTop = 0; reel.scrollLeft = 0; });
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

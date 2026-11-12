@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel Exhibition 레이아웃 데모</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@300;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root {
+    --bg: #e4e6e1;
+    --panel: #f3f4f0;
+    --ink: #1a1c1b;
+    --ink-dim: #5d625f;
+    --line: rgba(26, 28, 27, .14);
+    --pad-x: 5vw;
+    --card-h: 74dvh;
+    --gap: 6dvh;
+    --serif: "Hahmlet", serif;
+    --sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+    --ease: cubic-bezier(.16, 1, .3, 1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  body { overflow: hidden; }
+  ::selection { background: var(--ink); color: var(--panel); }
+
+  .top { position: fixed; z-index: 5; top: 0; left: 0; right: 0; height: 9dvh; padding: 0 var(--pad-x); display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
+  .top .brand { font-family: var(--serif); font-weight: 700; font-size: 17px; letter-spacing: -.02em; }
+  .top .count { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+  /* clip: hidden이면 화면 밖 요소에 포커스가 갈 때 섹션이 스크롤된다 */
+  .reel { position: relative; height: 100dvh; overflow: hidden; overflow: clip; user-select: none; touch-action: none; cursor: grab; }
+  .reel.dragging { cursor: grabbing; }
+  .reel:focus-visible { outline: 2px solid var(--ink); outline-offset: -6px; }
+
+  .plate {
+    position: absolute; top: 0; left: var(--pad-x); right: calc(var(--pad-x) + 56px); height: var(--card-h);
+    display: grid; grid-template-columns: 62fr 38fr; background: var(--panel); border: 1px solid var(--line);
+    will-change: transform;
+  }
+  .photo { position: relative; overflow: hidden; background: #cfd2cc; }
+  .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform, clip-path; }
+  .text { padding: 4.5dvh 3vw 4dvh; display: flex; flex-direction: column; border-left: 1px solid var(--line); }
+  .num { font: 300 clamp(56px, 11dvh, 120px)/.9 var(--serif); letter-spacing: -.04em; font-variant-numeric: lining-nums; }
+  .title { margin-top: auto; font: 700 clamp(30px, 5dvh, 48px)/1.18 var(--serif); letter-spacing: -.03em; word-break: keep-all; text-wrap: balance; }
+  .artist { margin-top: 12px; font-size: 15px; font-weight: 600; }
+  .desc { margin-top: 18px; font-size: 15px; line-height: 1.75; color: var(--ink-dim); word-break: keep-all; max-width: 34ch; }
+  .facts { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 5px; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .facts b { display: inline-block; width: 3.2em; font-weight: 400; color: var(--ink-dim); }
+  .ln { display: block; overflow: hidden; padding-bottom: .08em; }
+  .ln > span { display: block; will-change: transform; }
+
+  .index { position: absolute; z-index: 4; right: var(--pad-x); top: 50%; transform: translateY(-50%); width: 32px; display: flex; flex-direction: column; align-items: center; gap: 12px; font: 500 12px var(--sans); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .index .bar { position: relative; width: 1px; height: 26dvh; background: var(--line); }
+  .index .fill { position: absolute; left: -1px; width: 3px; top: 0; background: var(--ink); will-change: transform, height; }
+  .index ol { list-style: none; padding: 0; display: flex; flex-direction: column; }
+  .index button { width: 32px; height: 26px; border: 0; background: none; font: inherit; color: var(--ink-dim); cursor: pointer; }
+  .index button[aria-current="true"] { color: var(--ink); font-weight: 700; }
+  .index button:hover { color: var(--ink); }
+  .index button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+  @media (max-width: 720px) {
+    :root { --pad-x: 16px; --card-h: 78dvh; --gap: 4dvh; }
+    .plate { grid-template-columns: 1fr; grid-template-rows: 44% 56%; right: calc(var(--pad-x) + 30px); }
+    .text { border-left: 0; border-top: 1px solid var(--line); padding: 2.6dvh 20px 3dvh; }
+    .num { font-size: 52px; }
+    .title { margin-top: 10px; font-size: 28px; }
+    .desc { margin-top: 12px; font-size: 14px; line-height: 1.65; }
+    .facts { margin-top: auto; }
+    .index { width: 26px; right: 6px; }
+    .index .bar { height: 18dvh; }
+    .index ol { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .photo img, .ln > span { will-change: auto; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><span class="brand">빛의 기록 사진관</span><span class="count" id="count">2026 기획전 06</span></header>
+<main>
+  <section class="reel" id="reel" tabindex="0" aria-roledescription="carousel" aria-label="기획전 목록. 위아래 화살표로 넘깁니다">
+    <div id="stack"></div>
+    <nav class="index" aria-label="전시 선택">
+      <div class="bar"><div class="fill" id="fill"></div></div>
+      <ol id="dots"></ol>
+    </nav>
+  </section>
+</main>
+<script>
+const ITEMS = [
+  { photo: "tide", title: "물이 빠진 자리", artist: "한지오", desc: "서해 갯벌을 일 년 동안 같은 자리에서 찍었다. 물때표가 곧 촬영 일정표였다.", when: "3.4 – 4.27", where: "1관", credit: ["tdeley", "U--xvXIPwgI"] },
+  { photo: "alley", title: "골목의 이름들", artist: "류채원", desc: "재개발을 앞둔 동네 골목 마흔두 곳을 밤마다 걸으며 가로등 아래만 찍었다.", when: "5.2 – 6.15", where: "2관", credit: ["dawidtkocz", "etPPKLHtcGo"] },
+  { photo: "station", title: "관측소의 겨울", artist: "오세린", desc: "산 위 무인 관측소를 다섯 달 동안 지킨 관측원의 기록. 사진 옆에 그날의 기온을 적었다.", when: "7.1 – 8.24", where: "1관", credit: ["timoun", "-gsb-Q4RrGU"] },
+  { photo: "forge", title: "불을 다루는 손", artist: "김도하", desc: "문을 닫는 대장간 세 곳의 마지막 한 달. 손과 불씨만 남기고 나머지는 어둠에 묻었다.", when: "9.3 – 10.19", where: "3관", credit: ["joszwaan", "vRUIHN1iW2s"] },
+  { photo: "cave", title: "빛이 들어오는 구멍", artist: "서윤재", desc: "폐광과 동굴 열두 곳에서 하루 한 번 들어오는 빛만 기다려 찍었다.", when: "11.5 – 12.21", where: "2관", credit: ["iswanto", "KXtMGheovdw"] },
+  { photo: "lighthouse", title: "등대지기의 일지", artist: "문하린", desc: "할머니가 남긴 등대 일지의 날짜마다 같은 시각, 같은 자리에 섰다.", when: "1.7 – 2.22", where: "1관", credit: ["timberfoster", "luyqrtZaWmg"] },
+];
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+const reel = $("reel"), stack = $("stack"), N = ITEMS.length;
+const pad = (i) => String(i + 1).padStart(2, "0");
+const line = (html, cls = "") => `<span class="ln ${cls}"><span>${html}</span></span>`;
+
+ITEMS.forEach((it, i) => {
+  const el = document.createElement("article");
+  el.className = "plate";
+  el.setAttribute("aria-roledescription", "slide");
+  el.setAttribute("aria-label", `${i + 1} / ${N}: ${it.title}`);
+  el.innerHTML = `
+    <div class="photo"><img src="images/${it.photo}.webp" alt="" draggable="false"></div>
+    <div class="text">
+      ${line(pad(i), "num")}
+      <h2 class="title">${line(it.title)}</h2>
+      ${line(it.artist, "artist")}
+      <p class="desc">${line(it.desc)}</p>
+      <p class="facts">${line(`<b>기간</b>${it.when}`)}${line(`<b>장소</b>${it.where}`)}${line(`<b>사진</b>@${it.credit[0]} / Unsplash`)}</p>
+    </div>`;
+  stack.append(el);
+  const li = document.createElement("li");
+  li.innerHTML = `<button aria-label="${i + 1}번째 전시 보기: ${it.title}">${pad(i)}</button>`;
+  li.firstChild.addEventListener("click", () => goTo(nearest(i)));
+  $("dots").append(li);
+});
+const plates = [...stack.children];
+const photos = plates.map((p) => p.querySelector(".photo img"));
+const lines = plates.map((p) => [...p.querySelectorAll(".ln > span")]);
+const dots = [...$("dots").querySelectorAll("button")];
+
+let pos = 0, target = 0, active = -1, dragStart = null, dragPx = 0, vel = 0, lastY = 0, lastT = 0, wheelLock = 0;
+const mod = (a, n) => ((a % n) + n) % n;
+const nearest = (i) => target + (mod(i - target + N / 2, N) - N / 2);
+const goTo = (t) => { target = Math.round(t); if (reduce) pos = target; };
+const pitch = () => innerHeight * 0.80;
+
+function frame() {
+  if (dragStart === null) {
+    pos += (target - pos) * (reduce ? 1 : 0.075);
+    if (Math.abs(target - pos) < 0.0005) pos = target;
+  }
+  const h = pitch(), top = innerHeight * 0.13, p = pos - dragPx / h;
+  plates.forEach((el, i) => {
+    const rel = mod(i - p + N / 2, N) - N / 2, d = Math.min(Math.abs(rel), 1);
+    el.style.transform = `translate3d(0, ${(top + rel * h).toFixed(1)}px, 0)`;
+    if (reduce) { lines[i].forEach((s) => (s.style.transform = d < .5 ? "none" : "translateY(110%)")); return; }
+    // 사진은 아래에서 잘려 들어오고, 글은 줄마다 시차를 두고 올라온다
+    const cut = Math.min(d * 1.4, 1) * 100;
+    photos[i].style.clipPath = rel > 0 ? `inset(0 0 ${cut.toFixed(1)}% 0)` : `inset(${cut.toFixed(1)}% 0 0 0)`;
+    photos[i].style.transform = `scale(${(1 + d * .12).toFixed(3)})`;
+    lines[i].forEach((s, k) => {
+      const t = Math.min(Math.max(d * 2.2 - (lines[i].length - k) * 0.06, 0), 1);
+      s.style.transform = `translateY(${(t * 110 * Math.sign(rel || 1)).toFixed(1)}%)`;
+    });
+  });
+  $("fill").style.height = `${100 / N}%`;
+  $("fill").style.transform = `translateY(${(mod(p, N) * 100).toFixed(1)}%)`;
+  const a = mod(Math.round(p), N);
+  if (a !== active) {
+    active = a;
+    plates.forEach((el, i) => el.setAttribute("aria-hidden", i !== a));
+    dots.forEach((b, i) => b.setAttribute("aria-current", i === a));
+  }
+  requestAnimationFrame(frame);
+}
+
+reel.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const now = performance.now();
+  if (now < wheelLock || Math.abs(e.deltaY) < 8) return;
+  goTo(target + Math.sign(e.deltaY)); wheelLock = now + 700;
+}, { passive: false });
+reel.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("button")) return;
+  dragStart = lastY = e.clientY; lastT = performance.now(); vel = 0; dragPx = 0;
+  reel.setPointerCapture(e.pointerId); reel.classList.add("dragging");
+});
+reel.addEventListener("pointermove", (e) => {
+  if (dragStart === null) return;
+  const now = performance.now();
+  vel = (e.clientY - lastY) / Math.max(now - lastT, 1); lastY = e.clientY; lastT = now;
+  dragPx = e.clientY - dragStart;
+});
+function endDrag() {
+  if (dragStart === null) return;
+  pos -= dragPx / pitch(); dragPx = 0; dragStart = null;
+  const base = Math.round(pos), flick = Math.abs(vel) > 0.5 ? -Math.sign(vel) : 0;
+  goTo(flick && base === target ? base + flick : base);
+  reel.classList.remove("dragging");
+}
+reel.addEventListener("pointerup", endDrag);
+reel.addEventListener("pointercancel", endDrag);
+reel.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "PageDown") { e.preventDefault(); goTo(target + 1); }
+  if (e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); goTo(target - 1); }
+});
+// overflow: clip 미지원 브라우저 대비
+reel.addEventListener("scroll", () => { reel.scrollTop = 0; reel.scrollLeft = 0; });
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

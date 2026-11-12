@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel Index 레이아웃 데모</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root {
+    --bg: #201f1c;
+    --ink: #ece8e1;
+    --ink-dim: #9a958c;
+    --line: rgba(236, 232, 225, .14);
+    --pad-x: 4vw;
+    --row: 11dvh;
+    --sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+    --ease: cubic-bezier(.7, 0, .2, 1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  body { overflow: hidden; }
+  ::selection { background: var(--ink); color: var(--bg); }
+
+  /* clip: hidden이면 화면 밖 요소에 포커스가 갈 때 섹션이 스크롤된다 */
+  .reel { position: relative; height: 100dvh; overflow: hidden; overflow: clip; display: grid; grid-template-columns: 46fr 54fr; user-select: none; touch-action: none; }
+  .reel:focus-visible { outline: 2px solid var(--ink); outline-offset: -6px; }
+
+  .head { position: absolute; z-index: 3; top: 0; left: 0; right: 0; padding: 3.5dvh var(--pad-x); display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; pointer-events: none; }
+  .head span:last-child { color: var(--ink-dim); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .drum { position: relative; perspective: 900px; cursor: grab; }
+  .reel.dragging .drum { cursor: grabbing; }
+  .drum::before, .drum::after { content: ""; position: absolute; z-index: 2; left: 0; right: 0; height: 30dvh; pointer-events: none; }
+  .drum::before { top: 0; background: linear-gradient(var(--bg) 30%, transparent); }
+  .drum::after { bottom: 0; background: linear-gradient(transparent, var(--bg) 70%); }
+  .item {
+    position: absolute; left: var(--pad-x); right: 2vw; top: 50%; height: var(--row); margin-top: calc(var(--row) / -2);
+    display: flex; align-items: center; gap: 1.6vw; transform-origin: 0 50%; will-change: transform, opacity;
+    border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: inherit; padding: 0;
+  }
+  .item .n { width: 2.2em; font-size: 14px; font-weight: 500; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .item .t { font-size: clamp(30px, 4.6vw, 72px); font-weight: 800; letter-spacing: -.045em; line-height: 1; white-space: nowrap; }
+  .item:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+  .rule { position: absolute; z-index: 1; left: var(--pad-x); right: 2vw; top: 50%; height: var(--row); margin-top: calc(var(--row) / -2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); pointer-events: none; }
+
+  .view { position: relative; padding: 13dvh var(--pad-x) 6dvh 0; display: grid; grid-template-rows: 1fr auto; gap: 3dvh; }
+  .frame { position: relative; overflow: hidden; background: #2b2a26; }
+  .frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; clip-path: inset(0 0 100% 0); transform: scale(1.08); transition: clip-path .9s var(--ease), transform 1.4s var(--ease); }
+  .frame img.on { clip-path: inset(0 0 0 0); transform: scale(1); z-index: 1; }
+  .frame img.was { clip-path: inset(0 0 0 0); transform: scale(1); }
+  .facts { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 6px 4vw; font-size: 14px; }
+  .facts dt { color: var(--ink-dim); font-size: 12px; }
+  .facts dd { margin-top: 4px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .note { grid-column: 1 / -1; margin-top: 10px; color: var(--ink-dim); font-size: 14px; line-height: 1.7; max-width: 52ch; word-break: keep-all; }
+
+  @media (max-width: 720px) {
+    :root { --pad-x: 20px; --row: 8dvh; }
+    .reel { grid-template-columns: 1fr; grid-template-rows: 50dvh 50dvh; }
+    .view { order: -1; padding: 10dvh var(--pad-x) 0; gap: 1.6dvh; grid-template-rows: 1fr auto; }
+    .facts { grid-template-columns: repeat(2, auto); gap: 4px 28px; font-size: 13px; }
+    .facts > div:nth-child(n+3), .note { display: none; }
+    .item .t { font-size: 34px; }
+    .drum::before, .drum::after { height: 16dvh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .frame img { transition: none; transform: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section class="reel" id="reel" tabindex="0" aria-roledescription="carousel" aria-label="작은 건축 목록. 위아래 화살표로 넘깁니다">
+    <div class="head"><span>작은 건축 아카이브</span><span id="count">01 / 06</span></div>
+    <div class="drum" id="drum"><div class="rule"></div></div>
+    <div class="view">
+      <div class="frame" id="frame"></div>
+      <dl class="facts" id="facts" aria-live="polite"></dl>
+    </div>
+  </section>
+</main>
+<script>
+const ITEMS = [
+  { photo: "tide", title: "갯벌 관찰 데크", where: "전북 고창", by: "바다아래 건축", year: "2024", area: "86㎡", note: "물이 빠지면 길이 되고 물이 차면 섬이 되는 데크. 기둥 높이를 사리 때 수위에 맞췄다." },
+  { photo: "alley", title: "골목 끝 서점", where: "서울 중림동", by: "작은방 사무소", year: "2023", area: "41㎡", note: "가로등 하나가 간판을 대신한다. 밤에만 문을 여는 열두 평 서점." },
+  { photo: "station", title: "산정 관측소", where: "강원 평창", by: "고도 설계", year: "2022", area: "28㎡", note: "지붕 전체가 태양광 패널이다. 겨울 다섯 달을 전기 없이 버티도록 설계했다." },
+  { photo: "forge", title: "대장간 공방", where: "충남 공주", by: "숲길 건축", year: "2025", area: "64㎡", note: "통나무 뼈대에 벽을 반만 세웠다. 화로 열기가 빠지도록 한쪽을 열어 두었다." },
+  { photo: "cave", title: "폐광 전시장", where: "경북 문경", by: "지층 연구소", year: "2021", area: "320㎡", note: "천장의 오래된 환기구로 하루 한 번 빛이 든다. 조명은 그 시간에 맞춰 꺼진다." },
+  { photo: "lighthouse", title: "등대 숙소", where: "전남 신안", by: "수평선 건축", year: "2024", area: "52㎡", note: "꺼진 등대를 두 사람이 묵는 숙소로 고쳤다. 등명기 자리에 침대를 놓았다." },
+];
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+const reel = $("reel"), drum = $("drum"), frame = $("frame"), N = ITEMS.length;
+const pad = (i) => String(i + 1).padStart(2, "0");
+
+ITEMS.forEach((it, i) => {
+  const b = document.createElement("button");
+  b.className = "item";
+  b.innerHTML = `<span class="n">${pad(i)}</span><span class="t">${it.title}</span>`;
+  b.addEventListener("click", () => { if (!dragMoved) goTo(nearest(i)); });
+  drum.append(b);
+  const img = document.createElement("img");
+  img.src = `images/${it.photo}.webp`; img.alt = `${it.title} 사진`; img.draggable = false;
+  frame.append(img);
+});
+const items = [...drum.querySelectorAll(".item")], imgs = [...frame.children];
+
+let pos = 0, target = 0, active = -1, dragStart = null, dragPx = 0, dragMoved = false, vel = 0, lastY = 0, lastT = 0, wheelLock = 0;
+const mod = (a, n) => ((a % n) + n) % n;
+const nearest = (i) => target + (mod(i - target + N / 2, N) - N / 2);
+const goTo = (t) => { target = Math.round(t); if (reduce) pos = target; };
+const rowPx = () => items[0].offsetHeight;
+
+function show(a, prev) {
+  const it = ITEMS[a];
+  imgs.forEach((im, i) => { im.classList.toggle("on", i === a); im.classList.toggle("was", i === prev); });
+  $("facts").innerHTML = `<div><dt>위치</dt><dd>${it.where}</dd></div><div><dt>설계</dt><dd>${it.by}</dd></div>
+    <div><dt>준공</dt><dd>${it.year}</dd></div><div><dt>면적</dt><dd>${it.area}</dd></div><p class="note">${it.note}</p>`;
+  $("count").textContent = `${pad(a)} / ${pad(N - 1)}`;
+  items.forEach((el, i) => el.setAttribute("aria-current", i === a));
+}
+
+function frameLoop() {
+  if (dragStart === null) {
+    pos += (target - pos) * (reduce ? 1 : 0.1);
+    if (Math.abs(target - pos) < 0.0005) pos = target;
+  }
+  const r = rowPx(), p = pos - dragPx / r;
+  items.forEach((el, i) => {
+    const rel = mod(i - p + N / 2, N) - N / 2, d = Math.abs(rel);
+    // 목록은 드럼처럼 돈다: 중앙에서 멀수록 뒤로 눕고 작아지고 흐려진다
+    const tilt = reduce ? 0 : rel * -24;
+    el.style.transform = `translate3d(0, ${(rel * r * 1.05).toFixed(1)}px, 0) rotateX(${tilt.toFixed(1)}deg) scale(${(1 - Math.min(d, 3) * .16).toFixed(3)})`;
+    el.style.opacity = Math.max(0, 1 - d * .34).toFixed(3);
+    el.tabIndex = d < .5 ? 0 : -1;
+  });
+  const a = mod(Math.round(p), N);
+  if (a !== active) { const prev = active; active = a; show(a, prev); }
+  requestAnimationFrame(frameLoop);
+}
+
+reel.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const now = performance.now();
+  if (now < wheelLock || Math.abs(e.deltaY) < 8) return;
+  goTo(target + Math.sign(e.deltaY)); wheelLock = now + 450;
+}, { passive: false });
+drum.addEventListener("pointerdown", (e) => {
+  dragStart = lastY = e.clientY; lastT = performance.now(); vel = 0; dragPx = 0; dragMoved = false;
+  drum.setPointerCapture(e.pointerId); reel.classList.add("dragging");
+});
+drum.addEventListener("pointermove", (e) => {
+  if (dragStart === null) return;
+  const now = performance.now();
+  vel = (e.clientY - lastY) / Math.max(now - lastT, 1); lastY = e.clientY; lastT = now;
+  dragPx = e.clientY - dragStart;
+  if (Math.abs(dragPx) > 6) dragMoved = true;
+});
+function endDrag() {
+  if (dragStart === null) return;
+  pos -= dragPx / rowPx(); dragPx = 0; dragStart = null;
+  const base = Math.round(pos), flick = Math.abs(vel) > 0.6 ? -Math.sign(vel) : 0;
+  goTo(flick && base === target ? base + flick : base);
+  reel.classList.remove("dragging");
+}
+drum.addEventListener("pointerup", endDrag);
+drum.addEventListener("pointercancel", endDrag);
+reel.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "PageDown") { e.preventDefault(); goTo(target + 1); }
+  if (e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); goTo(target - 1); }
+});
+// overflow: clip 미지원 브라우저 대비
+reel.addEventListener("scroll", () => { reel.scrollTop = 0; reel.scrollLeft = 0; });
+
+requestAnimationFrame(frameLoop);
+</script>
+</body>
+</html>
