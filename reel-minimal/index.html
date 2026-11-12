@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel Minimal 레이아웃 데모</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root {
+    --bg: #eaf1f2;
+    --ink: #3a2e2f;
+    --mid: #7c6465;
+    --dim: #987878;
+    --accent: #a3535f;
+    --plate: #dae4e8;
+    --veil: rgba(234, 241, 242, .97);
+    --pad: 32px;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+    --ease: cubic-bezier(.16, .84, .24, 1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  body { overflow: hidden; }
+  ::selection { background: var(--ink); color: var(--bg); }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .mono { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; line-height: 1; }
+
+  /* clip: hidden이면 화면 밖 요소에 포커스가 갈 때 섹션이 스크롤된다 */
+  .stage { position: relative; height: 100dvh; overflow: hidden; overflow: clip; user-select: none; touch-action: none; cursor: grab; }
+  .stage.dragging { cursor: grabbing; }
+  .stage:focus-visible { outline: 1px dashed var(--dim); outline-offset: -8px; }
+
+  .head { position: absolute; z-index: 3; top: 24px; left: var(--pad); right: var(--pad); display: flex; justify-content: space-between; pointer-events: none; color: var(--dim); }
+  .head i, .v-count i { font-style: normal; color: var(--accent); }
+  .head b { font-family: var(--sans); font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ink); }
+
+  .list { position: absolute; z-index: 2; left: var(--pad); top: 50%; width: 30vw; height: 0; list-style: none; padding: 0; }
+  .row { position: absolute; left: 0; top: 0; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; transform-origin: 0 50%; will-change: transform, opacity; cursor: pointer; }
+  .row .ko { font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+  .row .n { font-family: var(--mono); font-size: 11px; color: var(--dim); transition: transform .8s cubic-bezier(.22, .61, .36, 1); }
+  .row:hover .n, .row:focus-visible .n { transform: translateX(3px); }
+  .row:focus-visible { outline: 1px dashed var(--dim); outline-offset: 4px; }
+
+  #frames { position: absolute; inset: 0; }
+  .frame { position: absolute; left: var(--cx); top: 50%; width: var(--w); height: var(--h); margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2); will-change: transform; }
+  .shell { position: absolute; inset: 0; overflow: hidden; background: var(--plate); will-change: clip-path; transition: opacity .45s ease; cursor: inherit; }
+  .shell img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+  .stage.hovering:not(.dragging) .frame:not(.hover) .shell { opacity: .7; }
+  .num { position: absolute; top: 50%; font-family: var(--mono); font-size: 12px; color: var(--mid); pointer-events: none; }
+  .num.l { right: 50%; }
+  .num.r { left: 50%; }
+
+  .pill { position: fixed; z-index: 4; left: 0; top: 0; pointer-events: none; padding: 7px 10px 6px; border-radius: 99px; background: var(--ink); color: var(--bg);
+    opacity: 0; transform: translate(-50%, -50%) scale(.6); transition: opacity .25s ease, transform .35s var(--ease); }
+  .pill.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  @media (pointer: fine) { .stage.hovering:not(.dragging) { cursor: none; } }
+  @media (pointer: coarse) { .pill { display: none; } }
+
+  .hint { position: absolute; z-index: 3; left: var(--pad); bottom: 24px; color: var(--dim); font-size: 12px; pointer-events: none; }
+
+  /* 상세 보기 */
+  .viewer { position: fixed; inset: 0; z-index: 10; touch-action: none; background: var(--veil); opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s .5s; user-select: none; }
+  .viewer.open { opacity: 1; visibility: visible; transition: opacity .5s ease; }
+  .v-img { position: absolute; overflow: hidden; background: var(--plate); cursor: e-resize; transform-origin: 0 0; }
+  .v-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .v-bar { position: absolute; top: 24px; left: var(--pad); right: var(--pad); display: flex; justify-content: space-between; align-items: center; }
+  .v-count { color: var(--dim); }
+  .v-count span { opacity: .5; }
+  .v-cap .en { color: var(--accent); }
+  .v-btn { padding: 10px 4px; }
+  .v-btn:focus-visible { outline: 1px dashed var(--dim); outline-offset: 2px; }
+  .v-prev, .v-next { position: absolute; top: 50%; transform: translateY(-50%); }
+  .v-prev { left: var(--pad); }
+  .v-next { right: var(--pad); }
+  .v-cap { position: absolute; left: var(--pad); bottom: 32px; max-width: 46ch; }
+  .v-cap h2 { margin: 12px 0 10px; font-size: clamp(28px, 3.4vw, 44px); font-weight: 600; letter-spacing: -.035em; line-height: 1.1; }
+  .v-cap p { color: var(--mid); font-size: 15px; line-height: 1.6; word-break: keep-all; }
+  .v-meta { position: absolute; right: var(--pad); bottom: 32px; text-align: right; color: var(--dim); display: grid; gap: 8px; }
+  .v-meta a { text-transform: none; color: inherit; text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 1px; }
+  .v-meta a:hover, .v-meta a:focus-visible { color: var(--ink); outline: none; }
+  .v-swap { transition: opacity .45s ease, transform .6s var(--ease); }
+  .v-swap.out { opacity: 0; transform: translateY(8px); transition: none; }
+
+  @media (max-width: 720px) {
+    :root { --pad: 16px; }
+    .list { top: auto; bottom: 64px; width: auto; right: var(--pad); height: 0; }
+    .stage::after { content: ""; position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 150px; background: linear-gradient(transparent, var(--bg) 45%); pointer-events: none; }
+    .num { display: none; }
+    .hint { display: none; }
+    .v-prev, .v-next { top: auto; bottom: 20px; transform: none; }
+    .v-cap { bottom: 72px; right: var(--pad); }
+    .v-meta { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .viewer, .viewer.open, .v-swap, .pill, .shell { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="stage" id="stage" tabindex="0" role="region" aria-roledescription="갤러리" aria-label="머무는 빛 사진 6장">
+  <header class="head mono"><b>머무는 빛</b><span id="count">(01) / (06)</span></header>
+  <ol class="list" id="list"></ol>
+  <div id="frames"></div>
+  <p class="hint">드래그 · 휠 · ↑↓ · 사진을 누르면 크게</p>
+</main>
+<div class="pill mono" id="pill" aria-hidden="true">보기</div>
+
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-labelledby="v-title" inert>
+  <div class="v-img" id="v-img"></div>
+  <div class="v-bar">
+    <span class="v-count mono" id="v-count"></span>
+    <button class="v-btn mono" id="v-close" type="button" aria-label="닫기">닫기 ✕</button>
+  </div>
+  <button class="v-btn v-prev mono" id="v-prev" type="button">← 이전</button>
+  <button class="v-btn v-next mono" id="v-next" type="button">다음 →</button>
+  <div class="v-cap v-swap" id="v-cap">
+    <span class="en mono" id="v-en"></span>
+    <h2 id="v-title"></h2>
+    <p id="v-desc"></p>
+  </div>
+  <div class="v-meta mono v-swap" id="v-meta"></div>
+</div>
+
+<script>
+const ITEMS = [
+  { photo: "tide", ko: "썰물", en: "Low Tide", desc: "물이 빠진 갯벌에 하늘이 한 번 더 비친다. 자전거 한 대가 그 위를 천천히 건넌다.", time: "오전 7시 10분", credit: ["tdeley", "U--xvXIPwgI"] },
+  { photo: "alley", ko: "밤 골목", en: "Night Alley", desc: "가로등 하나가 돌벽 전체를 데운다. 화분들이 문 앞에 줄지어 아침을 기다린다.", time: "오후 11시 40분", credit: ["dawidtkocz", "etPPKLHtcGo"] },
+  { photo: "station", ko: "눈 속 오두막", en: "Snow Hut", desc: "사방이 하얘서 지붕의 그림자가 집의 윤곽을 대신 그린다.", time: "오후 2시", credit: ["timoun", "-gsb-Q4RrGU"] },
+  { photo: "forge", ko: "대장간", en: "Forge", desc: "쇠가 달궈지는 동안에도 손은 쉬지 않는다. 불빛은 앞치마까지만 닿는다.", time: "오전 10시 30분", credit: ["joszwaan", "vRUIHN1iW2s"] },
+  { photo: "lighthouse", ko: "해 진 뒤", en: "After Dusk", desc: "하늘이 어두워진 다음에야 등대가 제 일을 시작한다.", time: "오후 6시 52분", credit: ["timberfoster", "luyqrtZaWmg"] },
+  { photo: "cave", ko: "동굴", en: "Cave", desc: "입구로 들어온 빛이 바닥에 닿기 전에 흩어진다. 안쪽은 끝내 보이지 않는다.", time: "정오", credit: ["iswanto", "KXtMGheovdw"] },
+];
+const N = ITEMS.length;
+const pad2 = (n) => String(n).padStart(2, "0");
+const wrap = (x) => ((x % N) + N) % N;
+const rel = (i, p) => wrap(i - p + N / 2) - N / 2;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+const stage = $("stage"), list = $("list"), framesEl = $("frames"), pill = $("pill"), countEl = $("count");
+
+const rows = ITEMS.map((it, i) => {
+  const li = document.createElement("li");
+  li.innerHTML = `<button class="row" type="button" data-i="${i}"><span class="n">(${pad2(i + 1)})</span><span class="ko">${it.ko}</span></button>`;
+  list.append(li);
+  return li.firstChild;
+});
+const frames = ITEMS.map((it, i) => {
+  const el = document.createElement("div");
+  el.className = "frame";
+  el.dataset.i = i;
+  el.innerHTML = `<div class="shell"><img src="images/${it.photo}.webp" alt="${it.ko}" draggable="false"></div>
+    <span class="num l">(${pad2(i + 1)})</span><span class="num r">(${pad2(i + 1)})</span>`;
+  framesEl.append(el);
+  return { el, shell: el.firstChild, l: el.querySelector(".num.l"), r: el.querySelector(".num.r") };
+});
+
+let L = {};
+function measure() {
+  const vw = innerWidth, vh = innerHeight, mobile = vw <= 720;
+  const ratio = mobile ? 1.5 : 2.07;
+  const W = mobile ? vw - 32 : Math.min(vw * .62, 1000, vh * .44 * ratio);
+  const H = W / ratio;
+  L = { mobile, W, H, ws: W * (mobile ? .72 : .63), hs: H * .6, G: mobile ? 10 : 14, cx: mobile ? vw / 2 : vw * .61, cy: mobile ? vh * .42 : vh / 2, rowH: mobile ? 22 : 24, ratio };
+  stage.style.setProperty("--w", W + "px");
+  stage.style.setProperty("--h", H + "px");
+  stage.style.setProperty("--cx", L.cx + "px");
+  framesEl.style.transform = `translateY(${L.cy - vh / 2}px)`;
+}
+const yOf = (r) => {
+  const a = Math.abs(r), A = L.H / 2 + L.G + L.hs / 2;
+  return Math.sign(r) * (a <= 1 ? a * A : A + (a - 1) * (L.hs + L.G));
+};
+
+let pos = 0, target = 0, shown = -1;
+function render() {
+  const { W, H, ws, hs } = L;
+  frames.forEach((f, i) => {
+    const r = rel(i, pos), d = Math.min(Math.abs(r), 1);
+    const w = W - (W - ws) * d, h = H - (H - hs) * d;
+    const ix = (W - w) / 2, iy = (H - h) / 2;
+    f.el.style.transform = `translateY(${yOf(r)}px)`;
+    f.el.style.opacity = Math.abs(r) > 2.4 ? Math.max(0, 1 - (Math.abs(r) - 2.4) * 2) : 1;
+    f.shell.style.clipPath = `inset(${iy}px ${ix}px)`;
+    f.l.style.transform = `translate(${-w / 2 - 14}px, ${h / 2 - 12}px)`;
+    f.r.style.transform = `translate(${w / 2 + 14}px, ${h / 2 - 12}px)`;
+    f.l.style.opacity = 1 - d;
+    f.r.style.opacity = d;
+  });
+  rows.forEach((row, i) => {
+    const r = rel(i, pos), a = Math.abs(r), d = Math.min(a, 1);
+    const extra = L.mobile ? 8 : 14;
+    const y = r * L.rowH + Math.sign(r) * d * extra;
+    row.style.transform = `translateY(${y - 8}px)`;
+    row.querySelector(".ko").style.fontSize = (15 + (L.mobile ? 9 : 13) * (1 - d)) + "px";
+    row.style.color = `color-mix(in srgb, var(--ink) ${Math.round((1 - d) * 100)}%, var(--dim))`;
+    row.querySelector(".n").style.color = `color-mix(in srgb, var(--accent) ${Math.round((1 - d) * 100)}%, var(--dim))`;
+    const fade = L.mobile ? 1.6 : 3.2;
+    row.style.opacity = a > fade - 1 ? Math.max(0, fade - a) : 1;
+    row.tabIndex = a < .5 ? 0 : -1;
+  });
+  const cur = wrap(Math.round(pos));
+  if (cur !== shown) {
+    shown = cur;
+    countEl.innerHTML = `<i>(${pad2(cur + 1)})</i> / (${pad2(N)})`;
+  }
+}
+
+function go(k) { target = Math.round(target) + k; }
+function goTo(i) { target = Math.round(target) + rel(i, Math.round(target)); }
+
+function loop() {
+  const diff = target - pos;
+  pos = reduce || Math.abs(diff) < .0005 ? target : pos + diff * .1;
+  render();
+  requestAnimationFrame(loop);
+}
+
+let drag = null, wheelLock = 0;
+stage.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  drag = { y: e.clientY, start: pos, moved: false, t: performance.now(), lastY: e.clientY, v: 0, el: e.target };
+  stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener("pointermove", (e) => {
+  movePill(e);
+  if (!drag) return;
+  const dy = e.clientY - drag.y;
+  if (!drag.moved && Math.abs(dy) > 6) { drag.moved = true; stage.classList.add("dragging"); pill.classList.remove("on"); }
+  if (!drag.moved) return;
+  const now = performance.now();
+  drag.v = (e.clientY - drag.lastY) / Math.max(1, now - drag.t);
+  drag.t = now; drag.lastY = e.clientY;
+  pos = target = drag.start - dy / (L.hs + L.G);
+});
+stage.addEventListener("pointerup", (e) => {
+  if (!drag) return;
+  const { moved, v, el } = drag;
+  drag = null;
+  stage.classList.remove("dragging");
+  if (moved) {
+    target = Math.abs(v) > .5 ? (v < 0 ? Math.ceil(pos) : Math.floor(pos)) : Math.round(pos);
+    return;
+  }
+  const row = el.closest(".row");
+  if (row) return goTo(+row.dataset.i);
+  const fr = el.closest(".frame");
+  if (!fr) return;
+  const i = +fr.dataset.i;
+  if (Math.abs(rel(i, pos)) < .5) openViewer(i);
+  else goTo(i);
+});
+stage.addEventListener("pointercancel", () => { drag = null; stage.classList.remove("dragging"); target = Math.round(pos); });
+stage.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const now = performance.now();
+  if (now < wheelLock || Math.abs(e.deltaY) < 4) return;
+  wheelLock = now + 600;
+  go(e.deltaY > 0 ? 1 : -1);
+}, { passive: false });
+stage.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "PageDown") { e.preventDefault(); go(1); }
+  else if (e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); go(-1); }
+  else if (e.key === "Enter" && e.target === stage) openViewer(wrap(Math.round(target)));
+});
+list.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); goTo(+e.target.dataset.i); }
+});
+stage.addEventListener("scroll", () => { stage.scrollTop = 0; stage.scrollLeft = 0; });
+
+let hovered = null;
+function movePill(e) {
+  const fr = drag?.moved ? null : e.target.closest?.(".frame");
+  if (fr !== hovered) {
+    hovered?.classList.remove("hover");
+    hovered = fr;
+    fr?.classList.add("hover");
+    stage.classList.toggle("hovering", !!fr);
+  }
+  if (fr) {
+    pill.textContent = Math.abs(rel(+fr.dataset.i, pos)) < .5 ? "보기" : "이동";
+    pill.style.left = e.clientX + "px";
+    pill.style.top = e.clientY + "px";
+  }
+  pill.classList.toggle("on", !!fr && e.pointerType === "mouse");
+}
+stage.addEventListener("pointerleave", () => { hovered?.classList.remove("hover"); hovered = null; stage.classList.remove("hovering"); pill.classList.remove("on"); });
+
+/* 상세 보기 */
+const viewer = $("viewer"), vImg = $("v-img"), vCap = $("v-cap"), vMeta = $("v-meta");
+let vIndex = 0, vOpen = false, vBusy = false, vOpenedAt = 0;
+
+function vRect() {
+  const vw = innerWidth, vh = innerHeight;
+  const room = L.mobile ? vh - 320 : vh - 300;
+  const w = Math.min(vw * (L.mobile ? 1 : .74) - (L.mobile ? 32 : 0), room * L.ratio);
+  const h = w / L.ratio;
+  return { left: (vw - w) / 2, top: L.mobile ? Math.max(72, (vh - 220 - h) / 2) : (vh - h) / 2 - 10, width: w, height: h };
+}
+function placeVImg() {
+  const r = vRect();
+  Object.assign(vImg.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+  return r;
+}
+function fillText(i) {
+  const it = ITEMS[i];
+  $("v-count").innerHTML = `<i>(${pad2(i + 1)})</i> <span>/</span> (${pad2(N)})`;
+  $("v-en").textContent = it.en;
+  $("v-title").textContent = it.ko;
+  $("v-desc").textContent = it.desc;
+  vMeta.innerHTML = `<span>${it.time}</span><a href="https://unsplash.com/photos/${it.credit[1]}" target="_blank" rel="noopener">사진 @${it.credit[0]}</a>`;
+}
+function newLayer(i) {
+  const img = document.createElement("img");
+  img.src = `images/${ITEMS[i].photo}.webp`;
+  img.alt = ITEMS[i].ko;
+  img.draggable = false;
+  return img;
+}
+function fromFrame(i, r) {
+  const src = frames[i].shell.getBoundingClientRect();
+  return `translate(${src.left - r.left}px, ${src.top - r.top}px) scale(${src.width / r.width}, ${src.height / r.height})`;
+}
+
+function openViewer(i) {
+  if (vOpen) return;
+  pos = target = Math.round(pos);
+  render();
+  vOpen = true; vIndex = i; vOpenedAt = performance.now();
+  vImg.replaceChildren(newLayer(i));
+  fillText(i);
+  const r = placeVImg();
+  viewer.inert = false;
+  stage.inert = true;
+  pill.classList.remove("on");
+  viewer.classList.add("open");
+  frames[i].el.style.visibility = "hidden";
+  if (!reduce) vImg.animate([{ transform: fromFrame(i, r) }, { transform: "none" }], { duration: 750, easing: "cubic-bezier(.16,.84,.24,1)" });
+  $("v-close").focus({ preventScroll: true });
+}
+function closeViewer() {
+  if (!vOpen) return;
+  vOpen = false;
+  const i = vIndex;
+  pos = target = Math.round(pos) + rel(i, Math.round(pos));
+  render();
+  frames.forEach((f) => (f.el.style.visibility = ""));
+  const r = vRect();
+  viewer.classList.remove("open");
+  viewer.inert = true;
+  stage.inert = false;
+  if (!reduce) vImg.animate([{ transform: "none" }, { transform: fromFrame(i, r) }], { duration: 600, easing: "cubic-bezier(.16,.84,.24,1)", fill: "forwards" })
+    .finished.then(() => vImg.getAnimations().forEach((a) => a.cancel()));
+  stage.focus({ preventScroll: true });
+}
+function step(k) {
+  if (!vOpen || vBusy) return;
+  const prev = vIndex;
+  vIndex = wrap(vIndex + k);
+  frames[prev].el.style.visibility = "";
+  frames[vIndex].el.style.visibility = "hidden";
+  const layer = newLayer(vIndex);
+  vImg.append(layer);
+  [vCap, vMeta].forEach((el) => el.classList.add("out"));
+  fillText(vIndex);
+  requestAnimationFrame(() => [vCap, vMeta].forEach((el) => el.classList.remove("out")));
+  const clean = () => { while (vImg.children.length > 1) vImg.firstChild.remove(); vBusy = false; };
+  if (reduce) return clean();
+  vBusy = true;
+  const from = k > 0 ? "inset(0 0 0 100%)" : "inset(0 100% 0 0)";
+  layer.animate([{ clipPath: from, transform: `translateX(${k * 4}%)` }, { clipPath: "inset(0 0 0 0)", transform: "none" }], { duration: 700, easing: "cubic-bezier(.7,0,.2,1)" }).finished.then(clean);
+  vImg.firstChild.animate([{ transform: "none" }, { transform: `translateX(${-k * 6}%)` }], { duration: 700, easing: "cubic-bezier(.7,0,.2,1)" });
+}
+$("v-close").onclick = closeViewer;
+$("v-prev").onclick = () => step(-1);
+$("v-next").onclick = () => step(1);
+vImg.onclick = () => { if (performance.now() - vOpenedAt > 400) step(1); };
+viewer.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeViewer();
+  else if (e.key === "ArrowRight") step(1);
+  else if (e.key === "ArrowLeft") step(-1);
+  else if (e.key === "Tab") {
+    const f = [...viewer.querySelectorAll("button, a")];
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+let vWheel = 0;
+viewer.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const now = performance.now(), dv = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  if (now < vWheel || Math.abs(dv) < 4) return;
+  vWheel = now + 750;
+  step(dv > 0 ? 1 : -1);
+}, { passive: false });
+let swipe = null;
+viewer.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") swipe = { x: e.clientX, y: e.clientY }; });
+viewer.addEventListener("pointerup", (e) => {
+  if (!swipe) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  swipe = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1);
+});
+
+addEventListener("resize", () => { measure(); if (vOpen) placeVImg(); });
+measure();
+render();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
