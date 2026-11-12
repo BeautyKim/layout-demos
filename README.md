@@ -8,14 +8,17 @@
 
 | 데모 | 레이아웃 | 문서 |
 |---|---|---|
-| [cinema-reel](cinema-reel/) | 세로 무한 릴. 포스터 카드가 끝없이 돌고, 넘기는 동안 글자가 흐려졌다가 멈추면 맺힌다 | [docs/cinema-reel.md](docs/cinema-reel.md) |
+| [cinema-reel](cinema-reel/) | 세로 무한 릴. 포스터 카드가 끝없이 돌고, 넘기는 동안 글자가 흐려졌다가 멈추면 맺힌다. 원본에 가장 가깝다 | [docs/cinema-reel.md](docs/cinema-reel.md) |
+| [reel-exhibition](reel-exhibition/) | 같은 릴을 밝은 사진전 도록으로. 사진은 잘려 들어오고 글은 줄마다 올라온다 | [docs/reel-variants.md](docs/reel-variants.md) |
+| [reel-festival](reel-festival/) | 같은 릴을 축제 라인업으로. 화면 가득 듀오톤, 이름이 가로로 휩쓸려 온다 | [docs/reel-variants.md](docs/reel-variants.md) |
+| [reel-index](reel-index/) | 같은 릴을 건축 아카이브로. 목록이 드럼처럼 돌고 사진이 위에서 열린다 | [docs/reel-variants.md](docs/reel-variants.md) |
 
 ## 보는 법
 
-데모 폴더에서 정적 서버를 띄우고 `http://localhost:4410/`을 연다. `file://`로 열면 일부 브라우저가 로컬 이미지나 글꼴을 막는다.
+저장소 루트에서 정적 서버를 띄우고 `http://localhost:4411/`을 연다. 첫 화면이 데모 목록이다. `file://`로 열면 일부 브라우저가 로컬 이미지나 글꼴을 막는다.
 
 ```bash
-cd cinema-reel && python3 -m http.server 4410
+python3 -m http.server 4411
 ```
 
 ## 데모를 추가할 때
@@ -25,4 +28,5 @@ cd cinema-reel && python3 -m http.server 4410
 - 이미지는 `<데모>/images/`에 내려받아 가로 1800px 안팎 WebP로 줄인다. 핫링크하지 않는다
 - 코드 주석은 코드만 봐서는 알 수 없는 이유가 있을 때만 단다. 구조·동작·바꿔 쓸 곳·사진 출처는 `docs/<데모>.md`에 쓴다
 - 데스크톱, 모바일(375px), `prefers-reduced-motion`에서 모두 확인한다
-- 위 데모 표에 한 줄 추가한다
+- 위 데모 표와 루트 `index.html` 목록에 한 줄씩 추가한다
+- 원본을 거의 그대로 옮긴 데모는 참고용으로만 두고, 실제로 꺼내 쓸 때는 분위기를 바꾼 변형을 함께 만든다
