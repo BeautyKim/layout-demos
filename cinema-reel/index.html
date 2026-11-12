@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cinema Reel 레이아웃 데모</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root {
+    --bg: #0a0908;
+    --ink: #f3ece0;
+    --ink-dim: rgba(243, 236, 224, .66);
+    --ink-faint: rgba(243, 236, 224, .4);
+    --gold: #d8b46a;
+    --pad-x: 7.5dvh;
+    --pad-r: var(--pad-x);
+    --radius: 48px;
+    --ease: cubic-bezier(.22, 1, .36, 1);
+    --display: "Cormorant Garamond", "Nanum Myeongjo", serif;
+    --myeongjo: "Nanum Myeongjo", serif;
+    --num: "Cormorant Garamond", serif;
+    --sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  body { overflow: hidden; }
+  ::selection { background: rgba(216, 180, 106, .38); color: var(--ink); }
+
+  /* clip: hidden이면 화면 밖 요소에 포커스가 갈 때 섹션이 스크롤된다 */
+  .reel { position: relative; height: 100dvh; overflow: hidden; overflow: clip; user-select: none; touch-action: none; cursor: grab; }
+  .reel.dragging { cursor: grabbing; }
+  .reel:focus-visible { outline: 2px solid var(--gold); outline-offset: -6px; }
+
+  .stack { position: absolute; inset: 0; }
+  .card {
+    position: absolute; left: var(--pad-x); right: var(--pad-r); top: 0;
+    height: 80dvh; border-radius: var(--radius); overflow: hidden;
+    will-change: transform; filter: url(#reel-blur);
+  }
+  .poster { position: absolute; inset: -4%; }
+  .poster::after, .d-poster::after {
+    content: ""; position: absolute; inset: 0; opacity: .22; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .shade { position: absolute; inset: 0; background:
+    linear-gradient(90deg, rgba(0,0,0,.62) 0%, rgba(0,0,0,.12) 45%, rgba(0,0,0,.68) 100%),
+    linear-gradient(transparent 45%, rgba(0,0,0,.5) 100%); }
+
+  .copy { position: absolute; inset: 0; padding: 6dvh 5.5dvh; display: grid; grid-template-columns: 1fr auto; gap: 4dvh; will-change: opacity, filter, transform; text-shadow: 0 1px 14px rgba(0,0,0,.55); }
+  .left { display: flex; flex-direction: column; }
+  .year { font: italic 500 28px/1 var(--num); }
+  .fest { margin-top: 12px; font-size: 13px; font-weight: 500; letter-spacing: .01em; line-height: 1.5; color: var(--ink-dim); max-width: 24ch; }
+  .badge { margin-top: 18px; align-self: flex-start; padding: 5px 12px; border: 1px solid rgba(216,180,106,.55); border-radius: 999px; color: var(--gold); font-size: 12px; font-weight: 500; }
+  .genre { margin-top: auto; font-size: 13px; font-weight: 500; color: var(--ink-dim); }
+  .title { margin-top: 10px; font-family: var(--display); font-weight: 800; font-size: clamp(48px, 9.4dvh, 108px); line-height: 1.08; letter-spacing: -.035em; word-break: keep-all; text-wrap: balance; }
+  .meta { margin-top: 20px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+  .meta dt { color: var(--ink-dim); }
+  .meta dd { font-weight: 600; }
+
+  .reviews { list-style: none; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: 4dvh; text-align: right; padding-bottom: 8dvh; }
+  .stars { display: inline-flex; gap: 2px; color: var(--gold); }
+  .stars .off { opacity: .28; }
+  .stars svg { width: 12px; height: 12px; display: block; }
+  .who { margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--ink-dim); }
+  .quote { margin-top: 6px; font-family: var(--display); font-weight: 700; font-size: clamp(18px, 2.6dvh, 25px); line-height: 1.4; letter-spacing: -.015em; max-width: 16ch; margin-left: auto; word-break: keep-all; text-wrap: balance; }
+
+  .more {
+    position: absolute; right: 5.5dvh; bottom: 5dvh; display: flex; align-items: center; gap: 12px;
+    padding: 14px 24px 14px 26px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.04);
+    color: var(--ink); font: 600 14px var(--sans); letter-spacing: .04em; cursor: pointer;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    transition: transform .3s var(--ease), background-color .3s, border-color .3s, box-shadow .3s;
+  }
+  .more:hover, .more:focus-visible { transform: scale(1.04); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.85); box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+  .more:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .more:active { transform: scale(.98); }
+  .more svg { width: 16px; height: 16px; transition: transform .3s var(--ease); }
+  .more:hover svg { transform: translateX(3px); }
+
+  .fade { position: absolute; left: 0; right: 0; height: 10dvh; z-index: 3; pointer-events: none; }
+  .fade.top { top: 0; background: linear-gradient(var(--bg), transparent); }
+  .fade.bottom { bottom: 0; background: linear-gradient(transparent, var(--bg)); }
+
+  .rail { position: absolute; right: 2.2dvh; top: 50%; transform: translateY(-50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--ink-dim); transition: opacity .4s var(--ease); }
+  .rail .num { font: italic 500 16px/1 var(--num); font-variant-numeric: lining-nums tabular-nums; }
+  .rail ol { list-style: none; padding: 0; display: flex; flex-direction: column; }
+  .rail button { width: 24px; height: 24px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+  .rail button::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-faint); transition: transform .3s var(--ease), background .3s; }
+  .rail button:hover::before { background: var(--ink-dim); }
+  .rail button[aria-current="true"]::before { background: var(--ink); transform: scale(1.75); }
+  .rail button:focus-visible { outline: 1px solid var(--gold); border-radius: 50%; }
+
+  .veil { position: absolute; z-index: 5; top: 10dvh; height: 80dvh; left: var(--pad-x); right: var(--pad-r); border-radius: var(--radius); pointer-events: none;
+    background: rgba(10,9,8,0); transition: background-color .6s var(--ease), backdrop-filter .6s var(--ease), -webkit-backdrop-filter .6s var(--ease); }
+  .reel.detail .veil { background: rgba(10,9,8,.35); backdrop-filter: blur(14px) saturate(120%); -webkit-backdrop-filter: blur(14px) saturate(120%); pointer-events: auto; }
+  .reel.detail .rail { opacity: 0; pointer-events: none; }
+
+  .follower {
+    position: fixed; left: 0; top: 0; z-index: 8; width: 104px; height: 104px; margin: -52px 0 0 -52px;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,.45); display: grid; place-items: center;
+    pointer-events: none; opacity: 0; transition: opacity .25s, scale .25s var(--ease);
+  }
+  .follower.on { opacity: 1; }
+  .follower.grab { scale: .8; }
+  .follower > * { grid-area: 1 / 1; transition: opacity .18s; }
+  .follower .label { font-size: 12px; font-weight: 500; letter-spacing: .04em; }
+  .follower svg { opacity: 0; }
+  .follower.grab .label { opacity: 0; }
+  .follower.grab svg { opacity: 1; }
+
+  .drawer {
+    position: absolute; z-index: 7; top: 10dvh; height: 80dvh; right: var(--pad-r); width: min(640px, 52%);
+    border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column;
+    background: linear-gradient(rgba(18,16,14,.85), rgba(10,9,8,.92)); backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255,255,255,.08); box-shadow: -30px 0 80px -20px rgba(0,0,0,.6);
+    transform: translateX(calc(100% + var(--pad-r) + 8px)); transition: transform .7s var(--ease);
+    user-select: text; cursor: auto;
+  }
+  .reel.detail .drawer { transform: none; }
+  /* .reel의 touch-action: none을 여기서 끊어야 패널이 스크롤된다 */
+  .d-scroll { overflow-y: auto; flex: 1; touch-action: pan-y; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(243,236,224,.22) transparent; }
+  .d-scroll::-webkit-scrollbar { width: 6px; }
+  .d-scroll::-webkit-scrollbar-thumb { background: rgba(243,236,224,.22); border-radius: 3px; }
+  .d-scroll::-webkit-scrollbar-track { background: transparent; }
+  .d-scroll:focus-visible { outline: 2px solid var(--gold); outline-offset: -4px; }
+  .d-poster { position: relative; height: 34%; min-height: 180px; }
+  .d-poster::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 55%, rgba(14,12,11,.95)); z-index: 1; }
+  .d-body { padding: 4dvh 5dvh 6dvh; }
+  .d-fest { font-size: 13px; font-weight: 500; color: var(--ink-dim); }
+  .d-title { margin-top: 10px; font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1.12; letter-spacing: -.035em; word-break: keep-all; text-wrap: balance; }
+  .d-meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-dim); }
+  .d-meta b { color: var(--ink); font-weight: 600; margin-left: 4px; }
+  .d-syn { margin-top: 24px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.1); font-family: var(--myeongjo); font-size: 17px; line-height: 1.9; color: rgba(243,236,224,.86); word-break: keep-all; max-width: 40em; }
+  .d-stats { margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px 20px; }
+  .d-stats dt { font-size: 12px; font-weight: 500; color: var(--ink-dim); }
+  .d-stats dd { margin-top: 4px; font-family: var(--myeongjo); font-weight: 700; font-size: 20px; letter-spacing: -.01em; }
+  .d-reviews { margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,.1); list-style: none; padding-left: 0; display: grid; gap: 20px; }
+  .d-reviews .quote { margin: 4px 0 0; max-width: none; text-align: left; font-size: 20px; }
+  .d-credit { margin-top: 32px; font-size: 12px; color: var(--ink-faint); }
+  .d-credit a { color: var(--ink-dim); text-underline-offset: 3px; }
+  .d-credit a:hover { color: var(--ink); }
+  .close { position: absolute; z-index: 2; top: 20px; right: 20px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); background: rgba(10,9,8,.4); color: var(--ink); cursor: pointer; display: grid; place-items: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background-color .25s, border-color .25s; }
+  .close:hover { background: rgba(10,9,8,.7); border-color: rgba(255,255,255,.8); }
+  .close:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .close svg { width: 18px; height: 18px; }
+
+  @media (max-width: 720px) {
+    :root { --pad-x: 16px; --pad-r: 34px; --radius: 28px; }
+    .copy { grid-template-columns: 1fr; padding: 4dvh 22px; }
+    .reviews { display: none; }
+    .title { font-size: clamp(44px, 13vw, 64px); }
+    .more { right: 22px; bottom: 4dvh; padding: 12px 20px; }
+    .meta { margin-bottom: 9dvh; }
+    .rail { right: 4px; }
+    .rail .num { font-size: 14px; }
+    .drawer { left: var(--pad-x); right: var(--pad-x); width: auto; }
+    .d-body { padding: 3dvh 22px 5dvh; }
+    .d-title { font-size: 36px; }
+    .follower { display: none; }
+  }
+  @media (hover: none) { .follower { display: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .card { filter: none; }
+    .drawer, .veil, .rail, .more, .more svg { transition: none; }
+    .follower { display: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="reel-blur" x="-5%" y="-25%" width="110%" height="150%"><feGaussianBlur id="reel-blur-amt" stdDeviation="0 0"/></filter>
+</svg>
+
+<main>
+  <section class="reel" id="reel" tabindex="0" aria-roledescription="carousel" aria-label="수상작 릴. 위아래 화살표로 넘기고 Enter로 자세히 봅니다">
+    <div class="stack" id="stack"></div>
+    <div class="fade top"></div><div class="fade bottom"></div>
+    <nav class="rail" aria-label="작품 선택"><span class="num" id="rail-now">01</span><ol id="rail"></ol><span class="num" id="rail-total">06</span></nav>
+    <div class="veil" id="veil"></div>
+    <aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="d-title" inert>
+      <button class="close" id="drawer-close" aria-label="상세 닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="d-scroll" id="drawer-body" tabindex="0"></div>
+    </aside>
+  </section>
+</main>
+<div class="follower" id="follower" aria-hidden="true">
+  <span class="label">드래그</span>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/></svg>
+</div>
+
+<script>
+const FILMS = [
+  { year: 2025, fest: "서해 독립영화제 · 장편 경쟁", genre: "다큐멘터리", title: "썰물의 시간", photo: "tide", credit: ["tdeley", "U--xvXIPwgI"], director: "한지오",
+    stats: { 평론가: "92%", 관객: "88%", "상영 시간": "1시간 34분", 포맷: "16mm", 화면비: "1.66:1", 언어: "한국어", 제작국: "한국" },
+    bg: "radial-gradient(60% 50% at 70% 20%, #4f6f78 0%, transparent 70%), radial-gradient(80% 60% at 20% 90%, #1d2b2e 0%, transparent 70%), #0f1719",
+    reviews: [[5, "심사위원 특별상", "물이 빠지는 소리까지 찍었다"], [4, "관객상", "느린데 눈을 못 뗀다"], [5, "비평가 주간", "올해의 첫 장면"]],
+    synopsis: "갯벌이 사라지기 전 마지막 겨울, 섬에 남은 세 가구의 하루를 따라간다. 카메라는 물때표에 맞춰 움직이고, 사람보다 바다가 먼저 말한다." },
+  { year: 2024, fest: "남도 단편영화제 · 대상", genre: "에세이 필름", title: "지도에 없는 골목", photo: "alley", credit: ["dawidtkocz", "etPPKLHtcGo"], director: "류채원",
+    stats: { 평론가: "95%", 관객: "79%", "상영 시간": "38분", 포맷: "디지털", 화면비: "1.85:1", 언어: "한국어", 제작국: "한국" },
+    bg: "radial-gradient(50% 40% at 30% 30%, #b8743a 0%, transparent 70%), radial-gradient(70% 70% at 80% 80%, #3a1d12 0%, transparent 70%), #1a0f0a",
+    reviews: [[5, "대상", "골목이 주인공이다"], [5, "촬영상", "주황빛 하나로 버틴다"], [4, "시민평론가상", "다 보고 걷고 싶어진다"]],
+    synopsis: "재개발 직전 동네의 골목 이름을 하나씩 받아 적는 사람의 기록. 지워질 이름을 부르는 목소리만으로 한 동네의 지도가 다시 그려진다." },
+  { year: 2025, fest: "북방 영화제 · 새로운 시선", genre: "관찰 다큐", title: "긴 정적", photo: "station", credit: ["timoun", "-gsb-Q4RrGU"], director: "오세린",
+    stats: { 평론가: "90%", 관객: "84%", "상영 시간": "1시간 42분", 포맷: "디지털", 화면비: "2.39:1", 언어: "한국어", 제작국: "한국 · 일본" },
+    bg: "radial-gradient(40% 30% at 50% 15%, #c9d4d8 0%, transparent 70%), radial-gradient(90% 60% at 50% 100%, #222a33 0%, transparent 70%), #12161b",
+    reviews: [[5, "감독상", "말 대신 눈이 내린다"], [4, "관객상", "끝나고 아무도 안 일어났다"], [5, "넷팩상", "침묵의 지도"]],
+    synopsis: "산간 기상관측소에서 혼자 겨울을 나는 관측원의 다섯 달. 매일 같은 시각에 적는 숫자들이 한 사람의 마음을 대신 기록한다." },
+  { year: 2023, fest: "도시 영화제 · 한국 경쟁", genre: "인물극", title: "불씨와 재", photo: "forge", credit: ["joszwaan", "vRUIHN1iW2s"], director: "김도하",
+    stats: { 평론가: "87%", 관객: "91%", "상영 시간": "1시간 51분", 포맷: "35mm", 화면비: "1.85:1", 언어: "한국어", 제작국: "한국" },
+    bg: "radial-gradient(45% 45% at 75% 40%, #c2412b 0%, transparent 70%), radial-gradient(70% 60% at 15% 80%, #2b0f0b 0%, transparent 70%), #160907",
+    reviews: [[5, "배우상", "화면을 태우는 얼굴"], [5, "편집상", "끊는 자리가 정확하다"], [4, "비평가상", "오래 남는다"]],
+    synopsis: "문을 닫는 대장간을 물려받을지 정해야 하는 막내딸의 일주일. 꺼져 가는 화로 앞에서 가족이 미뤄 둔 말들이 하나씩 달궈진다." },
+  { year: 2022, fest: "실험영화 비엔날레 · 그랑프리", genre: "실험 영화", title: "동굴", photo: "cave", credit: ["iswanto", "KXtMGheovdw"], director: "서윤재",
+    stats: { 평론가: "89%", 관객: "70%", "상영 시간": "55분", 포맷: "16mm", 화면비: "1.37:1", 언어: "대사 없음", 제작국: "한국" },
+    bg: "radial-gradient(35% 50% at 50% 50%, #6c5c96 0%, transparent 70%), radial-gradient(90% 90% at 10% 10%, #120f1f 0%, transparent 70%), #0b0912",
+    reviews: [[5, "그랑프리", "감정으로 지은 건축"], [4, "기술상", "집요하게 짠 구도"], [5, "비평가상", "새로운 문법"]],
+    synopsis: "폐광 안에서 빛 하나만으로 찍은 열두 개의 정지 장면. 서사 없이 빛의 각도만 바뀌는데, 장면마다 다른 계절이 지나간다." },
+  { year: 2024, fest: "바닷가 영화제 · 와이드 앵글", genre: "서정 다큐", title: "빛이 깨지는 곳", photo: "lighthouse", credit: ["timberfoster", "luyqrtZaWmg"], director: "문하린",
+    stats: { 평론가: "93%", 관객: "90%", "상영 시간": "1시간 26분", 포맷: "디지털", 화면비: "1.78:1", 언어: "한국어", 제작국: "한국" },
+    bg: "radial-gradient(55% 40% at 40% 25%, #d9b26a 0%, transparent 70%), radial-gradient(80% 60% at 70% 100%, #2c3a2a 0%, transparent 70%), #121810",
+    reviews: [[5, "예술공헌상", "기도 같은 영화"], [5, "촬영상", "빛이 곧 인물"], [4, "관객상", "다정하고 정직하다"]],
+    synopsis: "등대지기였던 할머니의 오래된 일지를 손녀가 다시 걸으며 찍었다. 일지에 적힌 날씨와 오늘의 날씨가 한 화면에서 겹친다." },
+];
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+const reel = $("reel"), stack = $("stack"), rail = $("rail"), drawer = $("drawer"), follower = $("follower"), blur = $("reel-blur-amt");
+const N = FILMS.length;
+const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.6l2.85 6.03 6.6.72-4.93 4.47 1.38 6.5L12 17.06l-5.9 3.26 1.38-6.5L2.55 9.35l6.6-.72z"/></svg>';
+const stars = (n) => Array.from({ length: 5 }, (_, k) => `<span class="${k < n ? "" : "off"}">${STAR}</span>`).join("");
+const pad = (i) => String(i + 1).padStart(2, "0");
+const img = (f) => `images/${f.photo}.webp`;
+const posterBg = (f) => f.photo ? `url("${img(f)}") center / cover no-repeat, ${f.bg}` : f.bg;
+const credit = (f) => f.credit ? `<a href="https://unsplash.com/photos/${f.credit[1]}" target="_blank" rel="noopener">사진 @${f.credit[0]} / Unsplash</a>` : "";
+const reviewItems = (f) => f.reviews.map(([n, who, q]) => `<li><div class="stars" role="img" aria-label="별 5개 중 ${n}개">${stars(n)}</div><div class="who">${who}</div><div class="quote">“${q}”</div></li>`).join("");
+
+FILMS.forEach((f, i) => {
+  const card = document.createElement("article");
+  card.className = "card";
+  card.setAttribute("aria-roledescription", "slide");
+  card.setAttribute("aria-label", `${i + 1} / ${N}: ${f.title}`);
+  card.innerHTML = `
+    <div class="poster" style='background:${posterBg(f)}' role="img" aria-label="${f.title} 포스터"></div><div class="shade"></div>
+    <div class="copy">
+      <div class="left">
+        <span class="year">${f.year}</span><span class="fest">${f.fest}</span><span class="badge">수상작</span>
+        <span class="genre">${f.genre}</span><h2 class="title">${f.title}</h2>
+        <dl class="meta"><dt>감독</dt><dd>${f.director}</dd><dt>장르</dt><dd>${f.genre}</dd></dl>
+      </div>
+      <ul class="reviews">${reviewItems(f)}</ul>
+    </div>
+    <button class="more" data-no-drag>자세히 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`;
+  card.querySelector(".more").addEventListener("click", () => openDrawer(i));
+  stack.append(card);
+  const li = document.createElement("li");
+  li.innerHTML = `<button data-no-drag aria-label="${i + 1}번째 작품 보기: ${f.title}"></button>`;
+  li.firstChild.addEventListener("click", () => goTo(nearest(i)));
+  rail.append(li);
+});
+$("rail-total").textContent = pad(N - 1);
+const cards = [...stack.children], copies = cards.map((c) => c.querySelector(".copy")), posters = cards.map((c) => c.querySelector(".poster"));
+const mores = cards.map((c) => c.querySelector(".more")), dots = [...rail.querySelectorAll("button")];
+
+let pos = 0, target = 0, active = -1, dragStart = null, dragPx = 0, dragMoved = false;
+const mod = (a, n) => ((a % n) + n) % n;
+const nearest = (i) => target + (mod(i - target + N / 2, N) - N / 2);
+const goTo = (t) => { target = Math.round(t); if (reduce) pos = target; };
+const isOpen = () => reel.classList.contains("detail");
+
+function frame() {
+  const prev = pos;
+  if (dragStart === null) {
+    pos += (target - pos) * (reduce ? 1 : 0.085);
+    if (Math.abs(target - pos) < 0.0005) pos = target;
+  }
+  const vh = innerHeight / 100, pitch = 83 * vh, top = 10 * vh;
+  const p = pos - dragPx / pitch;
+  cards.forEach((c, i) => {
+    const rel = mod(i - p + N / 2, N) - N / 2;
+    const d = Math.min(Math.abs(rel), 1);
+    c.style.transform = `translate3d(0, ${top + rel * pitch}px, 0)`;
+    const s = copies[i].style;
+    s.opacity = reduce ? (d < .5 ? 1 : 0) : Math.max(0, 1 - d * 1.6).toFixed(3);
+    s.filter = reduce ? "none" : `blur(${(d * 16).toFixed(2)}px)`;
+    s.transform = reduce ? "none" : `translate3d(0, ${(-rel * pitch * 0.4).toFixed(1)}px, 0)`;
+    posters[i].style.transform = reduce ? "none" : `translate3d(0, ${(-rel * pitch * 0.06).toFixed(1)}px, 0)`;
+    mores[i].style.opacity = s.opacity;
+    mores[i].style.pointerEvents = d < .5 ? "" : "none";
+    mores[i].tabIndex = d < .5 ? 0 : -1;
+  });
+  const v = Math.abs(pos - prev) * pitch;
+  if (!reduce) blur.setAttribute("stdDeviation", `0 ${Math.min(Math.max(v - 6, 0) * 0.5, 12).toFixed(2)}`);
+  const a = mod(Math.round(p), N);
+  if (a !== active) {
+    active = a;
+    cards.forEach((c, i) => c.setAttribute("aria-hidden", i !== a));
+    dots.forEach((d, i) => d.setAttribute("aria-current", i === a));
+    $("rail-now").textContent = pad(a);
+  }
+  requestAnimationFrame(frame);
+}
+
+let wheelLock = 0;
+reel.addEventListener("wheel", (e) => {
+  if (e.target.closest(".drawer")) return;
+  e.preventDefault();
+  if (isOpen()) return;
+  const now = performance.now();
+  if (now < wheelLock || Math.abs(e.deltaY) < 8) return;
+  goTo(target + Math.sign(e.deltaY)); wheelLock = now + 650;
+}, { passive: false });
+
+let lastY = 0, lastT = 0, vel = 0;
+reel.addEventListener("pointerdown", (e) => {
+  if (isOpen() || e.target.closest("[data-no-drag], .drawer")) return;
+  dragStart = lastY = e.clientY; lastT = performance.now(); vel = 0; dragMoved = false; dragPx = 0;
+  reel.setPointerCapture(e.pointerId); reel.classList.add("dragging"); follower.classList.add("grab");
+});
+reel.addEventListener("pointermove", (e) => {
+  if (dragStart === null) return;
+  const now = performance.now();
+  vel = (e.clientY - lastY) / Math.max(now - lastT, 1); lastY = e.clientY; lastT = now;
+  dragPx = e.clientY - dragStart;
+  if (Math.abs(dragPx) > 6) dragMoved = true;
+});
+function endDrag() {
+  if (dragStart === null) return;
+  const pitch = innerHeight * 0.83;
+  pos -= dragPx / pitch; dragPx = 0; dragStart = null;
+  const base = Math.round(pos), flick = Math.abs(vel) > 0.5 ? -Math.sign(vel) : 0;
+  goTo(flick && base === target ? base + flick : base);
+  reel.classList.remove("dragging"); follower.classList.remove("grab");
+}
+reel.addEventListener("pointerup", endDrag);
+reel.addEventListener("pointercancel", endDrag);
+
+addEventListener("pointermove", (e) => {
+  follower.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+  const onCard = !!e.target.closest?.(".card") && !e.target.closest("[data-no-drag]");
+  follower.classList.toggle("on", e.pointerType === "mouse" && !isOpen() && (onCard || dragStart !== null));
+});
+reel.addEventListener("pointerleave", () => follower.classList.remove("on"));
+
+reel.addEventListener("keydown", (e) => {
+  if (isOpen()) { if (e.key === "Escape") closeDrawer(); return; }
+  if (e.key === "ArrowDown" || e.key === "PageDown") { e.preventDefault(); goTo(target + 1); }
+  if (e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); goTo(target - 1); }
+  if (e.key === "Enter" && e.target === reel) openDrawer(active);
+});
+
+function openDrawer(i) {
+  const f = FILMS[i];
+  $("drawer-body").innerHTML = `
+    <div class="d-poster" style='background:${posterBg(f)}'></div>
+    <div class="d-body">
+      <div class="d-fest">${f.fest}</div>
+      <h2 class="d-title" id="d-title">${f.title}</h2>
+      <div class="d-meta"><span>감독<b>${f.director}</b></span><span>개봉<b>${f.year}</b></span><span>장르<b>${f.genre}</b></span></div>
+      <p class="d-syn">${f.synopsis}</p>
+      <dl class="d-stats">${Object.entries(f.stats).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
+      <ul class="d-reviews">${reviewItems(f)}</ul>
+      <p class="d-credit">${credit(f)}</p>
+    </div>`;
+  $("drawer-body").scrollTop = 0;
+  reel.classList.add("detail"); drawer.removeAttribute("inert"); drawer.setAttribute("aria-hidden", "false");
+  follower.classList.remove("on"); $("drawer-close").focus();
+}
+function closeDrawer() {
+  if (!isOpen()) return;
+  reel.classList.remove("detail"); drawer.setAttribute("inert", ""); drawer.setAttribute("aria-hidden", "true"); reel.focus();
+}
+$("drawer-close").addEventListener("click", closeDrawer);
+$("veil").addEventListener("click", closeDrawer);
+
+// overflow: clip 미지원 브라우저 대비
+reel.addEventListener("scroll", () => { reel.scrollTop = 0; reel.scrollLeft = 0; });
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
